@@ -53,7 +53,7 @@ export default class NativeDockExtension extends Extension {
     this._focusWindow = null;
     this._pressureBarrier = null;
     this._pressureBarrierId = null;
-    this._barrier = null;
+    this._barriers = [];
     this._revealed = false;
     this._menuOpen = false;
     this._hideTimeoutId = 0;
@@ -344,28 +344,53 @@ export default class NativeDockExtension extends Extension {
       this._onPressureTrigger(),
     );
 
-    try {
-      this._barrier = new Meta.Barrier({
-        backend: global.backend,
-        x1: monitor.x,
-        x2: monitor.x + monitor.width,
-        y1: monitor.y + monitor.height,
-        y2: monitor.y + monitor.height,
-        directions: Meta.BarrierDirection.NEGATIVE_Y,
-      });
-      this._pressureBarrier.addBarrier(this._barrier);
-    } catch (e) {
-      console.error(`NativeDock: Failed to create barrier: ${e.message}`);
+    const y = monitor.y + monitor.height;
+    for (const [x1, x2] of this._getBarrierSegments(monitor)) {
+      try {
+        const barrier = new Meta.Barrier({
+          backend: global.backend,
+          x1,
+          x2,
+          y1: y,
+          y2: y,
+          directions: Meta.BarrierDirection.NEGATIVE_Y,
+        });
+        this._pressureBarrier.addBarrier(barrier);
+        this._barriers.push(barrier);
+      } catch (e) {
+        console.error(`NativeDock: Failed to create barrier: ${e.message}`);
+      }
     }
   }
 
-  _destroyBarrier() {
-    if (this._barrier) {
-      if (this._pressureBarrier)
-        this._pressureBarrier.removeBarrier(this._barrier);
-      this._barrier.destroy();
-      this._barrier = null;
+  // Spans of the monitor's bottom edge not shared with a monitor below it,
+  // so the barrier never blocks the pointer from crossing between monitors.
+  _getBarrierSegments(monitor) {
+    const bottom = monitor.y + monitor.height;
+    let segments = [[monitor.x, monitor.x + monitor.width]];
+
+    for (const other of Main.layoutManager.monitors) {
+      if (other === monitor || other.y !== bottom) continue;
+
+      const left = other.x;
+      const right = other.x + other.width;
+      segments = segments.flatMap(([x1, x2]) =>
+        [
+          [x1, Math.min(x2, left)],
+          [Math.max(x1, right), x2],
+        ].filter(([a, b]) => b > a),
+      );
     }
+
+    return segments;
+  }
+
+  _destroyBarrier() {
+    for (const barrier of this._barriers) {
+      this._pressureBarrier?.removeBarrier(barrier);
+      barrier.destroy();
+    }
+    this._barriers = [];
     if (this._pressureBarrier) {
       if (this._pressureBarrierId) {
         this._pressureBarrier.disconnect(this._pressureBarrierId);
