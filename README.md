@@ -12,8 +12,8 @@ Instead of reconstructing a dock from scratch or bundling third-party widget sta
 
 - **100% Native Dash**: Uses the actual GNOME Shell Dash component—your pinned apps, running indicators, and "Show Applications" button behave identically to vanilla GNOME.
 - **Smart Auto-Hide**:
-  - **Always Visible**: Visible on your desktop and beneath floating/unmaximized windows.
-  - **Hides on Maximize & Tile**: Cleanly hides when the focused window is maximized, tiled, or fullscreen.
+  - **Always Visible**: Visible on your desktop and alongside floating windows that don't cover it.
+  - **Hides When Covered**: Cleanly hides when the focused window overlaps the dock, or is maximized, tiled, or fullscreen.
   - **Modal Dialog Awareness**: Automatically hides when modal dialogs appear so action buttons (OK, Cancel, Save) are never blocked.
 - **Edge Pressure Reveal**: Summon the dock while working in a maximized window by pushing your cursor against the bottom edge of the screen, powered by GNOME's native `Layout.PressureBarrier`.
 - **Overview & Gesture Lockstep**:
