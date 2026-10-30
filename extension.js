@@ -241,6 +241,7 @@ export default class NativeDockExtension extends Extension {
             Main.overview._animationInProgress ||
             controls._stateAdjustment.gestureInProgress
           ) {
+            this._dash.show();
             const progress = Math.clamp(controls._stateAdjustment.value, 0, 1);
             const shouldHide = this._shouldHideForFocusedWindow();
             const isClosing =
@@ -552,6 +553,9 @@ export default class NativeDockExtension extends Extension {
     this._dockWasHiddenOnOverviewEnter = false;
     this._revealed = false;
     this._dockTargetHidden = this._shouldHideForFocusedWindow();
+    // The overview animation already moved the dock out of view; finish
+    // hiding it so it stops taking input.
+    if (this._dockTargetHidden) this._hideDock();
     this._onFocusWindowChangedDelayed();
   }
 
@@ -715,6 +719,7 @@ export default class NativeDockExtension extends Extension {
     )
       return;
 
+    this._dash.show();
     this._dockBox.remove_all_transitions();
     this._dockBox.ease({
       translation_y: 0,
@@ -741,6 +746,9 @@ export default class NativeDockExtension extends Extension {
       opacity: 0,
       duration: 250,
       mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+      // Translated off-screen, the dash would still catch input on any
+      // monitor below the primary one, so hide it once fully out of view.
+      onComplete: () => this._dash?.hide(),
     });
   }
 
@@ -950,6 +958,7 @@ export default class NativeDockExtension extends Extension {
         this._dockBox.remove_child(this._dash);
 
       this._dash.remove_all_transitions();
+      this._dash.show();
       this._dash.x_align = this._origDashXAlign ?? Clutter.ActorAlign.FILL;
       this._dash.y_align = this._origDashYAlign ?? Clutter.ActorAlign.FILL;
       this._dash.track_hover = this._origDashTrackHover ?? false;
